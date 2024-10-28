@@ -1,39 +1,54 @@
 import { useEffect, useState } from "react"
 
 const App = () => {
-  const [inputAmount, setInputAmount] = useState(0)
-  const [selectBaseCurrency, setSelectBaseCurrency] = useState("USD")
-  const [selectConversionCurrency, setSelectConversionCurrency] =
-    useState("BRL")
-  const [conversionValue, setConversionValue] = useState(null)
+  const [inputAmount, setInputAmount] = useState(1)
+  const [from, setFrom] = useState("USD")
+  const [to, setTo] = useState("BRL")
+  const [rate, setRate] = useState(null)
+  const [loading, setLoading] = useState(null)
 
   useEffect(() => {
-    const apiKey = "NpfeL1reaHmOZ2yEcRiP2G2tYICHh8b4"
-    fetch(
-      `https://api.currencybeacon.com/v1/convert?from=${selectBaseCurrency}&to=${selectConversionCurrency}&amount=${inputAmount}`,
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
+    if (rate === null) {
+      return
+    }
+
+    document.title = `${rate?.toFixed(2)} ${to}`
+    return () => (document.title = "Conversor de moedas")
+  }, [rate, to])
+
+  useEffect(() => {
+    if (to === from || inputAmount === 0) {
+      setRate(null)
+      return
+    }
+
+    const id = setTimeout(() => {
+      setRate(null)
+      setLoading("Carregando...")
+
+      const apiKey = "NpfeL1reaHmOZ2yEcRiP2G2tYICHh8b4"
+      fetch(
+        `https://api.currencybeacon.com/v1/convert?from=${from}&to=${to}&amount=${inputAmount}`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
         },
-      },
-    )
-      .then((response) => response.json())
-      .then((response) => setConversionValue(response.value))
-      .catch(console.log)
-  }, [selectBaseCurrency, selectConversionCurrency, inputAmount])
+      )
+        .then((response) => response.json())
+        .then((response) => {
+          setRate(response.value)
+          setLoading(null)
+        })
+        .catch(console.log)
+    }, 500)
 
-  useEffect(() => {
-    conversionValue !== 0
-      ? (document.title = `${conversionValue?.toFixed(
-          2,
-        )} ${selectConversionCurrency}`)
-      : (document.title = "Conversor de moedas")
-  }, [conversionValue])
+    return () => clearInterval(id)
+  }, [from, to, inputAmount])
 
   const handleChangeInputAmount = (e) => setInputAmount(e.target.value)
-  const handleChangeSelectBase = (e) => setSelectBaseCurrency(e.target.value)
-  const handleChangeSelectConversion = (e) =>
-    setSelectConversionCurrency(e.target.value)
+  const handleChangeFrom = (e) => setFrom(e.target.value)
+  const handleChangeTo = (e) => setTo(e.target.value)
 
   return (
     <>
@@ -45,23 +60,22 @@ const App = () => {
       />
 
       <div className="selects">
-        <select value={selectBaseCurrency} onChange={handleChangeSelectBase}>
+        <select value={from} onChange={handleChangeFrom}>
           <option value="BRL">BRL</option>
           <option value="USD">USD</option>
           <option value="EUR">EUR</option>
         </select>
-        <select
-          value={selectConversionCurrency}
-          onChange={handleChangeSelectConversion}
-        >
+        <select value={to} onChange={handleChangeTo}>
           <option value="BRL">BRL</option>
           <option value="USD">USD</option>
           <option value="EUR">EUR</option>
         </select>
       </div>
-      {conversionValue !== 0 && (
+
+      {loading && <h2>{loading}</h2>}
+      {rate && (
         <h2>
-          {conversionValue?.toFixed(2)} {selectConversionCurrency}
+          {rate?.toFixed(2)} {to}
         </h2>
       )}
     </>
